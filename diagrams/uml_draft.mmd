@@ -1,0 +1,39 @@
+classDiagram
+    direction LR
+    class Owner {
+        +str owner_id
+        +str name
+        +dict pets
+        +add_pet(pet: Pet) void
+        +get_pet(pet_id: str) Pet
+    }
+
+    class Pet {
+        +str pet_id
+        +str name
+        +str species
+        +int age
+        +list medical_notes
+    }
+
+    class Task {
+        +str task_id
+        +str pet_id
+        +str title
+        +str task_type
+        +datetime start_time
+        +int duration_minutes
+        +bool is_recurring
+        +str priority
+    }
+
+    class Scheduler {
+        +list global_tasks
+        +schedule_task(task: Task) bool
+        +get_daily_agenda(pet_id: str, target_date: date) list
+        +detect_conflicts(new_task: Task) list
+    }
+
+    Owner "1" --> "0..*" Pet : manages
+    Pet "1" --> "0..*" Task : assigned to
+    Scheduler "1" ..> "0..*" Task : organizes and checks
