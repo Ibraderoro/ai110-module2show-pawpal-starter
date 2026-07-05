@@ -34,6 +34,8 @@ However, we realized that doing a raw linear scan across a massive historical ba
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+- Our conflict handler uses explicit, mathematical time-block overlap constraints rather than plain, loose keyword lookups or time match checks. However, a key tradeoff is that it flags a conflict and prompts the user to resolve it, rather than automatically sliding tasks around into alternative open slots. This design choice prevents the app from shifting strict, real-world care routines (like exact medication times) without the owner's knowledge, keeping schedule coordination clear and predictable.
+
 ---
 
 ## 3. AI Collaboration

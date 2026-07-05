@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import List, Dict, Optional
 
 @dataclass
@@ -13,10 +13,19 @@ class Task:
     duration_minutes: int
     priority: str = "Normal"  # Low, Normal, High
     is_completed: bool = False
+    frequency: str = "Once"  # 'Once', 'Daily', 'Weekly'
 
-    def mark_complete(self) -> None:
-        """Changes the task status to completed."""
+    def mark_complete(self, scheduler: Optional['Scheduler'] = None) -> Optional['Task']:
+        """Changes the task status to completed and handles recurring generation if a scheduler is provided."""
         self.is_completed = True
+        if scheduler and self.frequency != "Once":
+            return scheduler.handle_recurring_generation(self)
+        return None
+
+    @property
+    def end_time(self) -> datetime:
+        """Calculates the dynamic expiration time block based on duration minutes."""
+        return self.start_time + timedelta(minutes=self.duration_minutes)
 
 
 @dataclass
@@ -64,13 +73,50 @@ class Scheduler:
 
     def get_daily_agenda(self, owner: Owner, target_date: date) -> List[Task]:
         """Retrieves and chronologically organizes tasks for an owner's pets on a given date."""
-        # Retrieve all tasks from the owner's pets
         tasks = owner.get_all_tasks()
-        # Filter for the target calendar date and sort them chronologically
+        self.global_tasks = tasks
         daily_tasks = [t for t in tasks if t.start_time.date() == target_date]
-        daily_tasks.sort(key=lambda x: x.start_time)
-        return daily_tasks
+        return self.sort_by_time(daily_tasks)
 
-    def detect_conflicts(self, new_task: Task) -> List[Task]:
-        """Identifies time conflicts (Stub to be fully optimized in Phase 4)."""
-        return []
+    def sort_by_time(self, tasks: List[Task]) -> List[Task]:
+        """Sorts a collection of tasks chronologically by their start time."""
+        return sorted(tasks, key=lambda x: x.start_time)
+
+    def filter_tasks(self, tasks: List[Task], pet_id: Optional[str] = None, is_completed: Optional[bool] = None) -> List[Task]:
+        """Filters a target subset of tasks by pet identification or completeness state flags."""
+        filtered = tasks
+        if pet_id is not None:
+            filtered = [t for t in filtered if t.pet_id == pet_id]
+        if is_completed is not None:
+            filtered = [t for t in filtered if t.is_completed == is_completed]
+        return filtered
+
+    def detect_conflicts(self, owner: Owner, new_task: Task) -> List[Task]:
+        """Identifies time-boundary block collisions with existing tasks assigned to the same pet."""
+        conflicts = []
+        all_tasks = owner.get_all_tasks()
+        for existing_task in all_tasks:
+            if existing_task.task_id == new_task.task_id:
+                continue
+            if existing_task.pet_id == new_task.pet_id:
+                # Mathematical Overlap Equation: StartA < EndB and StartB < EndA
+                if new_task.start_time < existing_task.end_time and existing_task.start_time < new_task.end_time:
+                    conflicts.append(existing_task)
+        return conflicts
+
+    def handle_recurring_generation(self, completed_task: Task) -> Task:
+        """Generates a matching future task instance shifted ahead precisely by its frequency interval."""
+        interval = timedelta(days=1) if completed_task.frequency == "Daily" else timedelta(weeks=1)
+        next_start = completed_task.start_time + interval
+        next_id = f"{completed_task.task_id}-rev"
+        
+        return Task(
+            task_id=next_id,
+            pet_id=completed_task.pet_id,
+            title=completed_task.title,
+            task_type=completed_task.task_type,
+            start_time=next_start,
+            duration_minutes=completed_task.duration_minutes,
+            priority=completed_task.priority,
+            frequency=completed_task.frequency
+        )

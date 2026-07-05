@@ -1,53 +1,53 @@
 import streamlit as st
+from datetime import datetime, date
+# Step 1: Establish the connection by importing your backend engine
+from pawpal_system import Owner, Pet, Task, Scheduler
 
-st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
+st.set_page_config(page_title="PawPal+ Care Manager", page_icon="🐾", layout="centered")
 
-st.title("🐾 PawPal+")
+st.title("🐾 PawPal+ Care Manager")
 
-st.markdown(
-    """
-Welcome to the PawPal+ starter app.
+# Step 2: Manage the Application "Memory" (Stateless Prevention Vault)
+if "owner" not in st.session_state:
+    st.session_state.owner = Owner(owner_id="O-88", name="Salisu Ibrahim")
 
-This file is intentionally thin. It gives you a working Streamlit app so you can start quickly,
-but **it does not implement the project logic**. Your job is to design the system and build it.
+if "scheduler" not in st.session_state:
+    st.session_state.scheduler = Scheduler()
 
-Use this app as your interactive demo once your backend classes/functions exist.
-"""
+# Initialize a standard pet profile if the owner's record is completely fresh
+if not st.session_state.owner.pets:
+    default_pet = Pet(pet_id="P-MOCHI", name="Mochi", species="cat", age=2)
+    st.session_state.owner.add_pet(default_pet)
+
+# --- SIDEBAR: Profile Management ---
+with st.sidebar:
+    st.header("👤 Profile Environment")
+    st.write(f"**Manager:** {st.session_state.owner.name}")
+    st.divider()
+    
+    st.subheader("➕ Onboard a New Pet")
+    with st.form("onboard_pet_form", clear_on_submit=True):
+        new_pet_name = st.text_input("Pet Name")
+        new_species = st.selectbox("Species Types", ["dog", "cat", "other"])
+        new_age = st.number_input("Age (Years)", min_value=0, max_value=30, value=2)
+        
+        submit_pet = st.form_submit_button("Register Pet")
+        if submit_pet and new_pet_name:
+            generated_id = f"P-{new_pet_name.upper()}-{datetime.now().strftime('%M%S')}"
+            new_pet_obj = Pet(pet_id=generated_id, name=new_pet_name, species=new_species, age=int(new_age))
+            st.session_state.owner.add_pet(new_pet_obj)
+            st.success(f"Registered {new_pet_name} successfully!")
+            st.rerun()
+
+# --- MAIN INTERFACE: Step 3 Wiring UI Actions to Logic ---
+st.subheader("📅 Add a Care Task to Backend Memory")
+
+# Dropdown selection sourced directly from live object keys
+selected_pet_id = st.selectbox(
+    "Target Pet Profile", 
+    options=list(st.session_state.owner.pets.keys()),
+    format_func=lambda x: st.session_state.owner.pets[x].name
 )
-
-with st.expander("Scenario", expanded=True):
-    st.markdown(
-        """
-**PawPal+** is a pet care planning assistant. It helps a pet owner plan care tasks
-for their pet(s) based on constraints like time, priority, and preferences.
-
-You will design and implement the scheduling logic and connect it to this Streamlit UI.
-"""
-    )
-
-with st.expander("What you need to build", expanded=True):
-    st.markdown(
-        """
-At minimum, your system should:
-- Represent pet care tasks (what needs to happen, how long it takes, priority)
-- Represent the pet and the owner (basic info and preferences)
-- Build a plan/schedule for a day that chooses and orders tasks based on constraints
-- Explain the plan (why each task was chosen and when it happens)
-"""
-    )
-
-st.divider()
-
-st.subheader("Quick Demo Inputs (UI only)")
-owner_name = st.text_input("Owner name", value="Jordan")
-pet_name = st.text_input("Pet name", value="Mochi")
-species = st.selectbox("Species", ["dog", "cat", "other"])
-
-st.markdown("### Tasks")
-st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
-
-if "tasks" not in st.session_state:
-    st.session_state.tasks = []
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -55,34 +55,65 @@ with col1:
 with col2:
     duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
 with col3:
-    priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
+    priority = st.selectbox("Priority Ranking", ["low", "medium", "high"], index=2)
 
 if st.button("Add task"):
-    st.session_state.tasks.append(
-        {"title": task_title, "duration_minutes": int(duration), "priority": priority}
-    )
-
-if st.session_state.tasks:
-    st.write("Current tasks:")
-    st.table(st.session_state.tasks)
-else:
-    st.info("No tasks yet. Add one above.")
+    if task_title:
+        # Create a clean backend tracking timestamp for today
+        simulated_start = datetime.combine(date.today(), datetime.now().time())
+        generated_task_id = f"T-{datetime.now().strftime('%M%S')}"
+        
+        # Instantiate task object contract
+        new_task = Task(
+            task_id=generated_task_id,
+            pet_id=selected_pet_id,
+            title=task_title,
+            task_type="walk" if "walk" in task_title.lower() else "feeding",
+            start_time=simulated_start,
+            duration_minutes=int(duration),
+            priority=priority
+        )
+        
+        # Wire action directly to backend class method to update data structures
+        target_pet = st.session_state.owner.get_pet(selected_pet_id)
+        target_pet.add_task(new_task)
+        st.success(f"✅ Securely injected '{task_title}' into {target_pet.name}'s task tracking backlog!")
+    else:
+        st.error("Please enter a valid task title.")
 
 st.divider()
 
-st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+# Display active structural data currently resting in memory
+all_active_tasks = st.session_state.owner.get_all_tasks()
+
+if all_active_tasks:
+    st.markdown("### 🗄️ Core Backlog Snapshot (`st.session_state`)")
+    formatted_table_data = []
+    for t in all_active_tasks:
+        target_pet_obj = st.session_state.owner.get_pet(t.pet_id)
+        formatted_table_data.append({
+            "Pet Target": target_pet_obj.name if target_pet_obj else "Unknown",
+            "Activity Title": t.title,
+            "Duration": f"{t.duration_minutes} mins",
+            "Priority Weight": t.priority,
+            "Execution State": "✅ Completed" if t.is_completed else "⏳ Pending"
+        })
+    st.table(formatted_table_data)
+else:
+    st.info("No active backend task objects logged in this session framework yet.")
+
+st.divider()
+
+st.subheader("🧠 Algorithmic Execution Engine")
+st.caption("Triggers your centralized query scheduler logic layers.")
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
-    )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
-    )
+    # Invoke daily agenda compiler calculation loop
+    compiled_agenda = st.session_state.scheduler.get_daily_agenda(st.session_state.owner, date.today())
+    
+    st.success("📊 Chronological Engine Run Complete!")
+    if compiled_agenda:
+        for t in compiled_agenda:
+            st.markdown(f"⏱️ **{t.start_time.strftime('%H:%M')}** — {t.title} ({t.duration_minutes} min) — `[{t.priority.upper()}]`")
+    else:
+        st.info("No timeline objects found scheduled for today's calendar date configuration.")

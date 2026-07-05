@@ -90,10 +90,10 @@ Sample test output:
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| **Task sorting** | `Scheduler.sort_by_time()` | Orders tasks chronologically by absolute `start_time` metadata. |
+| **Filtering** | `Scheduler.filter_tasks()` | Segments lists by explicit target `pet_id` or `is_completed` states. |
+| **Conflict handling** | `Scheduler.detect_conflicts()` | Implements overlap logic ($\text{Start}_A < \text{End}_B \text{ and } \text{Start}_B < \text{End}_A$) to prevent physical scheduling collisions. |
+| **Recurring tasks** | `Scheduler.handle_recurring_generation()` | Automatically uses `timedelta` to roll completed daily/weekly tasks forward into the next occurrence slot. |
 
 ## 📸 Demo Walkthrough
 
