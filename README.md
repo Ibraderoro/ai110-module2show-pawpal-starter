@@ -68,20 +68,58 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 🎉 System Runtime Verification: SUCCESS!
 ============================================================
 
-## 🧪 Testing PawPal+
+======================================================================
+🧠 PAWPAL+ INTELLIGENT ALGORITHMIC TESTING GROUND 🧠
+======================================================================
 
+[Testing Sorting Engine] Adding mixed afternoon/morning entries out of chronological order...
+Resulting sorted agenda order:
+  ⏱️ 07:30 -> Critical Morning Meds
+  ⏱️ 16:00 -> Afternoon Park Run
+
+[Testing Overlap Analytics] Injecting a colliding task window...
+⚠️ WARNING: Conflict detected! Your proposed time blocks collide with:
+  ❌ Blocker: 'Afternoon Park Run' (16:00 - 16:40)
+
+[Testing Recurrence Systems] Tracking a Daily Care loop completion...
+  Current instance date: 2026-07-05 12:00
+  🔄 Success! Rolled forward next cycle to: 2026-07-06 12:00
+
+======================================================================
+
+## 🧪 Testing PawPal+
+To run the full suite of automated unit tests, open your terminal and execute the following standard test runner command:
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest -v
 
 # Run with coverage:
 pytest --cov
+
+Our comprehensive test framework targets the core behavioral rules and edge cases of the scheduling engine to guarantee absolute system stability:
+
+- Chronological Task Sorting (test_chronological_task_sorting): Verifies that the scheduler automatically organizes agendas from earliest to latest start times, even when care events are inputted out of order.
+- Empty Agenda Isolation (test_empty_pet_agenda): Checks the system boundary by verifying that querying a new pet profile with zero logged activities safely handles an empty array baseline without crashing.
+- Time-Window Overlap Conflict Detection (test_conflict_detection_window_overlap): Tests our mathematical validation formula ($\text{Start}_A < \text{End}_B \text{ and } \text{Start}_B < \text{End}_A$) to ensure it catches overlapping task slots for a pet and flags it for the user.Automated Recurrence Rollforward (test_recurrence_logic_daily_rollforward): Confirms that clicking a Daily task successfully marks it complete and generates a brand-new task instance shifted precisely one day into the future using timedelta.
 ```
 
 Sample test output:
 
 ```
 # Paste your pytest output here
+
+================================= test session starts =================================
+platform darwin -- Python 3.14.2, pytest-9.1.1, pluggy-1.6.0 -- /Users/salisuibrahim/dev/machine-learning/CodePath/ai110-module2show-pawpal-starter/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /Users/salisuibrahim/dev/machine-learning/CodePath/ai110-module2show-pawpal-starter
+collected 4 items                                                                     
+
+tests/test_pawpal.py::test_chronological_task_sorting PASSED                    [ 25%]
+tests/test_pawpal.py::test_empty_pet_agenda PASSED                              [ 50%]
+tests/test_pawpal.py::test_conflict_detection_window_overlap PASSED             [ 75%]
+tests/test_pawpal.py::test_recurrence_logic_daily_rollforward PASSED            [100%]
+
+================================== 4 passed in 0.01s ==================================
 ```
 
 ## 📐 Smarter Scheduling
@@ -94,6 +132,9 @@ Sample test output:
 | **Filtering** | `Scheduler.filter_tasks()` | Segments lists by explicit target `pet_id` or `is_completed` states. |
 | **Conflict handling** | `Scheduler.detect_conflicts()` | Implements overlap logic ($\text{Start}_A < \text{End}_B \text{ and } \text{Start}_B < \text{End}_A$) to prevent physical scheduling collisions. |
 | **Recurring tasks** | `Scheduler.handle_recurring_generation()` | Automatically uses `timedelta` to roll completed daily/weekly tasks forward into the next occurrence slot. |
+
+## Confidence Level
+⭐ ⭐ ⭐ ⭐ ⭐ (5/5 Stars) — The core algorithmic engine provides fully deterministic data structure operations, mathematically absolute timeline block tracking, and robust execution sorting boundaries.
 
 ## 📸 Demo Walkthrough
 
