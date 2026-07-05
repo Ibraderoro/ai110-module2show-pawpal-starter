@@ -7,12 +7,20 @@
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
 
+My initial architecture utilizes a strictly decoupled, "CLI-first" layout designed to isolate data models from the central scheduling orchestration logic. The design includes four core classes:
+
+- **`Pet` (Python Dataclass):** Functions as a pure, decoupled data container housing attributes for an individual pet profile, including identity, species traits, age, and an array for long-term medical alerts.
+- **`Task` (Python Dataclass):** Acts as a structural contract representing a single care event (such as feedings, walks, medications, or appointments) bound by discrete execution windows (start_time), time allocations (duration_minutes), and evaluation weights (priority).
+- **`Owner` (Domain Entity):** Handles profile grouping constraints. It uses a clean lookup directory (Dict[str, Pet]) to associate, manage, and retrieve unique pet profiles under an owner's account.
+- **`Scheduler` (Algorithmic Control Layer):** The central computational engine. It acts as the gatekeeper for task registrations and contains the stubs meant for executing chronological list sorting, timeline conflict checks, and agenda filtering.
+
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+Yes. During architectural brainstorming with my AI collaborator, we analyzed the workflow of the conflict detection stub (`detect_conflicts`). The original plan was to check a new task against a flat, global history array (`global_tasks`).
 
----
+However, we realized that doing a raw linear scan across a massive historical backlog would create an inefficient $O(n)$ verification footprint per task, turning batch lookups into an $O(n^2)$ bottleneck. To fix this before writing the implementation, I modified the design intent of the `Scheduler` to group and partition task vectors by target date and specific `pet_id` boundaries. This localizes the sorting and conflict loops to relevant subsets, preventing long-term scaling lag.
 
 ## 2. Scheduling Logic and Tradeoffs
 
