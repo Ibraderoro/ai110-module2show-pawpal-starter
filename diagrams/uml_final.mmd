@@ -1,0 +1,47 @@
+classDiagram
+    direction LR
+    class Owner {
+        +str owner_id
+        +str name
+        +dict pets
+        +add_pet(pet: Pet) void
+        +get_pet(pet_id: str) Pet
+        +get_all_tasks() list
+    }
+
+    class Pet {
+        +str pet_id
+        +str name
+        +str species
+        +int age
+        +list medical_notes
+        +list tasks
+        +add_task(task: Task) void
+    }
+
+    class Task {
+        +str task_id
+        +str pet_id
+        +str title
+        +str task_type
+        +datetime start_time
+        +int duration_minutes
+        +bool is_completed
+        +str priority
+        +str frequency
+        +end_time dynamic
+        +mark_complete(scheduler) Task
+    }
+
+    class Scheduler {
+        +list global_tasks
+        +get_daily_agenda(owner: Owner, target_date: date) list
+        +sort_by_time(tasks: list) list
+        +filter_tasks(tasks: list, pet_id: str, is_completed: bool) list
+        +detect_conflicts(owner: Owner, new_task: Task) list
+        +handle_recurring_generation(completed_task: Task) Task
+    }
+
+    Owner "1" --> "0..*" Pet : houses
+    Pet "1" --> "0..*" Task : tracks internal
+    Scheduler "1" ..> "1" Owner : queries tasks across

@@ -47,13 +47,6 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
-```
-
 ---
 
 🐾 PAWPAL+ CLI SYSTEM INTERFACE - INITIALIZATION PROGRESS 🐾
@@ -86,6 +79,7 @@ Resulting sorted agenda order:
   🔄 Success! Rolled forward next cycle to: 2026-07-06 12:00
 
 ======================================================================
+```
 
 ## 🧪 Testing PawPal+
 To run the full suite of automated unit tests, open your terminal and execute the following standard test runner command:
@@ -99,7 +93,9 @@ pytest --cov
 Our comprehensive test framework targets the core behavioral rules and edge cases of the scheduling engine to guarantee absolute system stability:
 
 - Chronological Task Sorting (test_chronological_task_sorting): Verifies that the scheduler automatically organizes agendas from earliest to latest start times, even when care events are inputted out of order.
+
 - Empty Agenda Isolation (test_empty_pet_agenda): Checks the system boundary by verifying that querying a new pet profile with zero logged activities safely handles an empty array baseline without crashing.
+
 - Time-Window Overlap Conflict Detection (test_conflict_detection_window_overlap): Tests our mathematical validation formula ($\text{Start}_A < \text{End}_B \text{ and } \text{Start}_B < \text{End}_A$) to ensure it catches overlapping task slots for a pet and flags it for the user.Automated Recurrence Rollforward (test_recurrence_logic_daily_rollforward): Confirms that clicking a Daily task successfully marks it complete and generates a brand-new task instance shifted precisely one day into the future using timedelta.
 ```
 
@@ -140,10 +136,14 @@ tests/test_pawpal.py::test_recurrence_logic_daily_rollforward PASSED            
 
 Describe your app in numbered steps so a reader can follow along without watching a video:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. **Profile Management & Onboarding:** The owner's master profile is initialized on launch. Using the "Onboard a Pet" form in the left sidebar, users can register pet profiles (such as Mochi, Jest, or Papii) with their specific species and age metrics, writing them directly into the core state structures.
+
+2. **Dynamic Task Configuration:** In the main panel, the user chooses which pet profile to update via a dropdown menu. They specify the care step details—including description titles, category blocks, custom duration metrics, urgency priority rankings, and recurrence frequencies (Once, Daily, or Weekly).
+
+3. **Live Chronological Timeline Sort:** As tasks are logged, the backend invocation hooks parse them via Scheduler.sort_by_time(). The interface instantly rearranges the list elements chronologically by start time, bypassing addition order.
+
+4. **Algorithmic Schedule Collision Warnings:** If an added task's time-window parameters overlap with a previously scheduled block for that pet, the timeline instantly catches it. The Scheduler.detect_conflicts() matrix flags the item with a prominent red ⚠️ Schedule Collision warning box detailing the exact overlapping blocker task.
+
+5. **Contextual AI Explanations & Recurrence Rollover:** Every task row displays system logic notes explaining why it is placed there based on priority constraints. Pushing the "Mark Done" button updates state tracking dynamically; if configured as a "Daily" or "Weekly" routine, a new upcoming instance is projected into the future using timedelta.
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->

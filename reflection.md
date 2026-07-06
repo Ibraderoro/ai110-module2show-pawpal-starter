@@ -42,13 +42,15 @@ However, we realized that doing a raw linear scan across a massive historical ba
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+- I utilized my AI coding assistant as a specialized technical peer across separate, phase-restricted chat contexts. It was highly effective for drafting initial code patterns, setting up the boilerplate for the Streamlit two-column grid, and isolating mathematical edge cases for the overlap formula.
+
+- The most helpful prompts were highly specific, constraint-driven inquiries such as: *"Given an Owner object that aggregates nested Pet lists, what is the most clean, pythonic way to filter and sort their combined Task references chronologically by their datetime attributes using a lambda function?"*
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+- A key moment of human intervention occurred during Phase 6 when implementing the task conflict warnings. The AI initially suggested keeping the conflict detection alert isolated within the task entry form submission hook. However, upon testing, I noticed that Streamlit's immediate invocation of `st.rerun()` upon form submission wiped the warning banner from the screen before a user could see it.
+
+- I rejected the local form-level warning design and refactored the layout to execute `Scheduler.detect_conflicts()` dynamically during the schedule compilation loop. This allowed me to mount inline error indicators (`st.error`) right on the conflicting timeline rows, making the UI robust and intuitive.
 
 ---
 
@@ -56,13 +58,19 @@ However, we realized that doing a raw linear scan across a massive historical ba
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+- Using `pytest`, I built an automated test suite verifying four structural pillars:
+    1. **Chronological Sorting (`test_chronological_task_sorting`):** Confirmed tasks added out of order successfully sort from earliest to latest.
+    2. **Boundary Isolation (`test_empty_pet_agenda`):** Verified that pets with zero care activities return a clean, empty list instead of crashing.
+    3. **Interval Intersection (`test_conflict_detection_window_overlap`):** Validated that the overlap formula correctly flags tasks intersecting an active timeframe.
+    4. **Temporal Rollforward (`test_recurrence_logic_daily_rollforward`):** Ensured that daily tasks auto-generate a matching task precisely one day forward using `timedelta`.
+
+- These tests were crucial for ensuring that optimizing our interface elements wouldn't inadvertently break our backend business logic.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+- I am completely confident (5/5 stars) in the scheduler's foundational mechanics. The test suite runs deterministically in 0.01 seconds, and data updates flow correctly between our state structures and the UI.
+
+- If given more time, the next edge cases I would target include multi-day task durations that cross past midnight, handling shifts across daylight saving time (DST) boundaries using timezone-aware datetimes, and validating cascading dependency paths (e.g., preventing a "Post-Medication Feeding" task from being marked complete until its parent "Administer Meds" task is finalized).
 
 ---
 
@@ -70,12 +78,12 @@ However, we realized that doing a raw linear scan across a massive historical ba
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+- I am highly satisfied with the seamless integration achieved between the object-oriented backend and the Streamlit view layer. Seeing the scheduler automatically sort out-of-order tasks and display real-time conflict warnings directly on the timeline rows—without degrading performance or dropping persistent data states—is rewarding.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+- In a subsequent engineering sprint, I would redesign the persistence engine. While `st.session_state` is perfect for local prototyping, a production-grade application should back up data to a lightweight embedded database (like SQLite) or an external database. This would ensure that pet profiles, historical completed logs, and future recurring cycles survive browser refreshes and application restarts.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+- The biggest takeaway from this project is that as a human lead architect, clear communication and strict constraint setting are everything when working with AI. AI is incredibly efficient at writing data structures and generating boilerplate components, but it is the human developer’s responsibility to maintain a decoupled architecture, trace execution control flows, and ensure that the user interface maps cleanly to the true backend state.
