@@ -129,7 +129,18 @@ tests/test_pawpal.py::test_recurrence_logic_daily_rollforward PASSED            
 | **Conflict handling** | `Scheduler.detect_conflicts()` | Implements overlap logic ($\text{Start}_A < \text{End}_B \text{ and } \text{Start}_B < \text{End}_A$) to prevent physical scheduling collisions. |
 | **Recurring tasks** | `Scheduler.handle_recurring_generation()` | Automatically uses `timedelta` to roll completed daily/weekly tasks forward into the next occurrence slot. |
 
+## 💾 Extended Capability: JSON Data Persistence
+
+To ensure system reliability beyond volatile application memory bounds, PawPal+ incorporates an automated file-based database lifecycle subsystem:
+
+  **Persistence Architecture:** Native serialization matrices are written into `pawpal_system.py` across `to_dict()` and `from_dict()` serialization definitions. This enables precise parsing of nested classes and handling of complex properties like ISO-formatted `datetime` strings.
+  **Application Lifecycle Flow:** `app.py` acts as a non-blocking gatekeeper. Upon environment boot, the system checks for `data.json`. If found, it automatically restores the complete `Owner` structural ecosystem, full profile matrices, and active schedules. Any subsequent write actions cleanly overwrite the JSON storage file.
+  **Modified Components:**
+    * `pawpal_system.py`: Added explicit encoding, decoding, file loading, and serialization tracking handlers.
+    * `app.py`: Integrated file synchronization checks across state instantiation hooks and state update points.
+
 ## Confidence Level
+
 ⭐ ⭐ ⭐ ⭐ ⭐ (5/5 Stars) — The core algorithmic engine provides fully deterministic data structure operations, mathematically absolute timeline block tracking, and robust execution sorting boundaries.
 
 ## 📸 Demo Walkthrough

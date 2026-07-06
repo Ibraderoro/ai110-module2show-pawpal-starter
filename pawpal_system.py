@@ -1,3 +1,5 @@
+import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Optional
@@ -8,7 +10,7 @@ class Task:
     task_id: str
     pet_id: str
     title: str
-    task_type: str  # e.g., 'feeding', 'walk', 'medication', 'appointment'
+    task_type: str  # e.g., 'feeding', 'walk', 'medication', 'appointment', 'grooming'
     start_time: datetime
     duration_minutes: int
     priority: str = "Normal"  # Low, Normal, High
@@ -27,6 +29,35 @@ class Task:
         """Calculates the dynamic expiration time block based on duration minutes."""
         return self.start_time + timedelta(minutes=self.duration_minutes)
 
+    def to_dict(self) -> dict:
+        """Converts Task properties to a standard primitive dictionary for JSON conversion."""
+        return {
+            "task_id": self.task_id,
+            "pet_id": self.pet_id,
+            "title": self.title,
+            "task_type": self.task_type,
+            "start_time": self.start_time.isoformat(),
+            "duration_minutes": self.duration_minutes,
+            "priority": self.priority,
+            "is_completed": self.is_completed,
+            "frequency": self.frequency
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Task':
+        """Instantiates a valid Task element from primitive dictionary inputs."""
+        return cls(
+            task_id=data["task_id"],
+            pet_id=data["pet_id"],
+            title=data["title"],
+            task_type=data["task_type"],
+            start_time=datetime.fromisoformat(data["start_time"]),
+            duration_minutes=data["duration_minutes"],
+            priority=data.get("priority", "Normal"),
+            is_completed=data.get("is_completed", False),
+            frequency=data.get("frequency", "Once")
+        )
+
 
 @dataclass
 class Pet:
@@ -41,6 +72,31 @@ class Pet:
     def add_task(self, task: Task) -> None:
         """Appends a care task directly to this pet's internal tracker."""
         self.tasks.append(task)
+
+    def to_dict(self) -> dict:
+        """Serializes Pet metadata and child tasks array to primitive elements."""
+        return {
+            "pet_id": self.pet_id,
+            "name": self.name,
+            "species": self.species,
+            "age": self.age,
+            "medical_notes": self.medical_notes,
+            "tasks": [t.to_dict() for t in self.tasks]
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Pet':
+        """Constructs a Pet record alongside its complete tree of child Task dataclasses."""
+        pet = cls(
+            pet_id=data["pet_id"],
+            name=data["name"],
+            species=data["species"],
+            age=data["age"],
+            medical_notes=data.get("medical_notes", [])
+        )
+        for task_data in data.get("tasks", []):
+            pet.add_task(Task.from_dict(task_data))
+        return pet
 
 
 class Owner:
@@ -65,6 +121,30 @@ class Owner:
             all_tasks.extend(pet.tasks)
         return all_tasks
 
+    def save_to_json(self, filename: str = "data.json") -> None:
+        """Serializes the complete profile entity tree directly into a local JSON asset file."""
+        payload = {
+            "owner_id": self.owner_id,
+            "name": self.name,
+            "pets": {pet_id: pet.to_dict() for pet_id, pet in self.pets.items()}
+        }
+        with open(filename, "w") as f:
+            json.dump(payload, f, indent=4)
+
+    def load_from_json(self, filename: str = "data.json") -> bool:
+        """Reconstructs the multi-pet tree framework from a local tracking asset. Returns success status."""
+        if not os.path.exists(filename):
+            return False
+        try:
+            with open(filename, "r") as f:
+                data = json.load(f)
+            self.owner_id = data["owner_id"]
+            self.name = data["name"]
+            self.pets = {pet_id: Pet.from_dict(pet_data) for pet_id, pet_data in data.get("pets", {}).items()}
+            return True
+        except Exception:
+            return False
+
 
 class Scheduler:
     """The central brain that retrieves, organizes, and manages tasks across pets."""
@@ -75,6 +155,7 @@ class Scheduler:
         """Retrieves and chronologically organizes tasks for an owner's pets on a given date."""
         tasks = owner.get_all_tasks()
         self.global_tasks = tasks
+        # Normalize comparison to ensure tasks match the requested calendar day
         daily_tasks = [t for t in tasks if t.start_time.date() == target_date]
         return self.sort_by_time(daily_tasks)
 
@@ -95,13 +176,25 @@ class Scheduler:
         """Identifies time-boundary block collisions with existing tasks assigned to the same pet."""
         conflicts = []
         all_tasks = owner.get_all_tasks()
+        
         for existing_task in all_tasks:
             if existing_task.task_id == new_task.task_id:
                 continue
+                
             if existing_task.pet_id == new_task.pet_id:
-                # Mathematical Overlap Equation: StartA < EndB and StartB < EndA
-                if new_task.start_time < existing_task.end_time and existing_task.start_time < new_task.end_time:
+                # Normalize dates to handle strict, date-agnostic daily time block matching
+                base_date = date.today()
+                
+                start_a = datetime.combine(base_date, new_task.start_time.time())
+                end_a = start_a + timedelta(minutes=new_task.duration_minutes)
+                
+                start_b = datetime.combine(base_date, existing_task.start_time.time())
+                end_b = start_b + timedelta(minutes=existing_task.duration_minutes)
+                
+                # Absolute Intersection Formula
+                if start_a < end_b and start_b < end_a:
                     conflicts.append(existing_task)
+                    
         return conflicts
 
     def handle_recurring_generation(self, completed_task: Task) -> Task:

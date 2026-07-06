@@ -7,19 +7,20 @@ st.set_page_config(page_title="PawPal+ Smart Care Assistant", page_icon="🐾", 
 st.title("🐾 PawPal+ Smart Care Assistant")
 st.caption("An intelligent planning ecosystem for busy pet parents.")
 
-# --- PERSISTENT STATE MEMORY MANAGEMENT ---
+# --- PERSISTENT STATE MEMORY & FILE ECOSYSTEM LIFECYCLE ---
 if "owner" not in st.session_state:
     st.session_state.owner = Owner(owner_id="O-88", name="Salisu Ibrahim")
+    # Local JSON footprint backup load
+    if not st.session_state.owner.load_from_json():
+        # Fallback profile seed strings to match workspace baselines
+        st.session_state.owner.add_pet(Pet(pet_id="P-MOCHI", name="Mochi", species="cat", age=2))
+        st.session_state.owner.add_pet(Pet(pet_id="P-JEST", name="Jest", species="dog", age=3))
+        st.session_state.owner.save_to_json()
 
 if "scheduler" not in st.session_state:
     st.session_state.scheduler = Scheduler()
 
-# Seed baseline structural profiles to match your workspace snapshots if state is fresh
-if not st.session_state.owner.pets:
-    st.session_state.owner.add_pet(Pet(pet_id="P-MOCHI", name="Mochi", species="cat", age=2))
-    st.session_state.owner.add_pet(Pet(pet_id="P-JEST", name="Jest", species="dog", age=3))
-
-# --- SIDEBAR & MAIN LAYOUT (Matches your UI design perfectly) ---
+# --- SIDEBAR & MAIN LAYOUT (Symmetric Layout Split) ---
 col_sidebar, col_main = st.columns([1, 2.2])
 
 with col_sidebar:
@@ -38,13 +39,14 @@ with col_sidebar:
             generated_id = f"P-{new_pet_name.upper()}-{datetime.now().strftime('%M%S')}"
             new_pet_obj = Pet(pet_id=generated_id, name=new_pet_name, species=new_species, age=int(new_age))
             st.session_state.owner.add_pet(new_pet_obj)
+            st.session_state.owner.save_to_json()  # Persistent Commit
             st.success(f"Registered {new_pet_name} successfully!")
             st.rerun()
 
 with col_main:
     st.header("📅 Add Care Routine Step")
     
-    # Dynamic pet profile picker mapped strictly to live backend object keys
+    # Active Dropdown Selection Index Mapping
     selected_pet_id = st.selectbox(
         "Select Target Pet Profile", 
         options=list(st.session_state.owner.pets.keys()),
@@ -68,7 +70,6 @@ with col_main:
             simulated_start = datetime.combine(date.today(), task_time)
             generated_task_id = f"T-{datetime.now().strftime('%M%S')}"
             
-            # Instantiate candidate task token using the correct, dynamic selected_pet_id
             candidate_task = Task(
                 task_id=generated_task_id, 
                 pet_id=selected_pet_id,
@@ -80,18 +81,19 @@ with col_main:
                 frequency=frequency
             )
             
-            # Save task to backend structures directly
             target_pet = st.session_state.owner.get_pet(selected_pet_id)
-            target_pet.add_task(candidate_task)
-            st.success(f"Successfully pinned '{task_title}' to {target_pet.name}'s care tracking list!")
-            st.rerun()
+            if target_pet:
+                target_pet.add_task(candidate_task)
+                st.session_state.owner.save_to_json()  # Persistent Commit
+                st.success(f"Successfully pinned '{task_title}' to {target_pet.name}'s track array!")
+                st.rerun()
 
     st.divider()
 
-    # --- BRAIN ENGINE VIEW, SORTING & LIVE WARNINGS ---
+    # --- LIVE TIMELINE VIEW WITH ERROR BLOCK INLINE MATCHING ---
     st.subheader("🧠 System Generated Schedule & Care Explanations")
     
-    # Query Scheduler engine (executes internal sort_by_time chronological ordering)
+    # Process Scheduler output (automatically aggregates and triggers sort_by_time)
     compiled_agenda = st.session_state.scheduler.get_daily_agenda(st.session_state.owner, date.today())
     
     if compiled_agenda:
@@ -99,21 +101,20 @@ with col_main:
             t_pet = st.session_state.owner.get_pet(t.pet_id)
             p_name = t_pet.name if t_pet else "Unknown"
             
-            # LIVE ALGORITHMIC INTERCEPT: Scan for active conflicts on this timeline row
+            # Context Real-Time Scanning Intercept
             conflicts = st.session_state.scheduler.detect_conflicts(st.session_state.owner, t)
             
             r_col1, r_col2, r_col3 = st.columns([1, 3, 1.2])
             with r_col1:
                 st.markdown(f"⏱️ **{t.start_time.strftime('%H:%M')} - {t.end_time.strftime('%H:%M')}**")
             with r_col2:
-                # Scannable metadata markers layout
                 st.markdown(f"**{t.title}** for *{p_name}* ({t.duration_minutes} mins) — `[{t.priority.upper()}]` — `{t.frequency}`")
                 
-                # Dynamic Alert Box: Triggered if the algorithm isolates an overlap block
+                # Active Overlap Layout Rendering Box
                 if conflicts:
                     st.error(f"⚠️ **Schedule Collision:** Overlaps with **'{conflicts[0].title}'** ({conflicts[0].start_time.strftime('%H:%M')} - {conflicts[0].end_time.strftime('%H:%M')})!")
                 
-                # Contextual Explanation Engine
+                # Reasoning Output Formatting Block
                 if t.priority == "High":
                     st.caption("💡 *System Reasoning:* Prioritized as an essential care step because missing this time block can disrupt your pet's mandatory health routine.")
                 else:
@@ -122,17 +123,17 @@ with col_main:
             with r_col3:
                 if not t.is_completed:
                     if st.button("Mark Done", key=t.task_id):
-                        # Roll forward handling for recurring intervals
                         next_cycle = t.mark_complete(st.session_state.scheduler)
                         if next_cycle and t_pet:
                             t_pet.add_task(next_cycle)
-                            st.toast("🔄 Recurring instance automatically generated for next interval slot.")
+                            st.toast("🔄 Recurring interval rollover generated.")
+                        st.session_state.owner.save_to_json()  # Persistent Commit
                         st.rerun()
                 else:
                     st.markdown("<span style='color:green; font-weight:bold;'>Completed</span>", unsafe_allow_html=True)
             st.divider()
             
-        # Optional raw table overview for technical audit checks
+        # Expanded Logging Table Details
         with st.expander("🗄️ Technical Session State Registry Overview", expanded=False):
             raw_tasks = st.session_state.owner.get_all_tasks()
             st.table([{
