@@ -45,14 +45,21 @@ class Task:
 
     @classmethod
     def from_dict(cls, data: dict) -> 'Task':
-        """Instantiates a valid Task element from primitive dictionary inputs."""
+        """Instantiates a valid Task element from primitive dictionary inputs with defensive time parsing."""
+        # DEFENSIVE BRANCH: Handle malformed, missing, or corrupt ISO strings gracefully
+        try:
+            parsed_time = datetime.fromisoformat(data["start_time"])
+        except (ValueError, TypeError, KeyError):
+            # Fallback signature: Default to the start of today to prevent an app crash
+            parsed_time = datetime.combine(date.today(), datetime.min.time())
+
         return cls(
             task_id=data["task_id"],
             pet_id=data["pet_id"],
             title=data["title"],
             task_type=data["task_type"],
-            start_time=datetime.fromisoformat(data["start_time"]),
-            duration_minutes=data["duration_minutes"],
+            start_time=parsed_time,
+            duration_minutes=data.get("duration_minutes", 30),
             priority=data.get("priority", "Normal"),
             is_completed=data.get("is_completed", False),
             frequency=data.get("frequency", "Once")
@@ -155,7 +162,6 @@ class Scheduler:
         """Retrieves and chronologically organizes tasks for an owner's pets on a given date."""
         tasks = owner.get_all_tasks()
         self.global_tasks = tasks
-        # Normalize comparison to ensure tasks match the requested calendar day
         daily_tasks = [t for t in tasks if t.start_time.date() == target_date]
         return self.sort_by_time(daily_tasks)
 
@@ -182,7 +188,6 @@ class Scheduler:
                 continue
                 
             if existing_task.pet_id == new_task.pet_id:
-                # Normalize dates to handle strict, date-agnostic daily time block matching
                 base_date = date.today()
                 
                 start_a = datetime.combine(base_date, new_task.start_time.time())

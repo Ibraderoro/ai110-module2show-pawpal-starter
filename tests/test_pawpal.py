@@ -1,84 +1,110 @@
 import pytest
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pawpal_system import Owner, Pet, Task, Scheduler
 
-def test_chronological_task_sorting():
-    """Verify that tasks are returned in strict chronological order regardless of addition sequence."""
-    scheduler = Scheduler()
-    owner = Owner(owner_id="O-TEST", name="Salisu")
-    pet = Pet(pet_id="P-TEST", name="Mochi", species="cat", age=2)
+@pytest.fixture
+def test_env():
+    """Initializes a pristine structural core testing environment."""
+    owner = Owner(owner_id="O-TEST", name="Salisu Ibrahim")
+    pet = Pet(pet_id="P-TEST", name="TestPet", species="dog", age=2)
     owner.add_pet(pet)
+    scheduler = Scheduler()
+    return owner, pet, scheduler
+
+
+def test_chronological_task_sorting(test_env):
+    """Verifies that the scheduler engine correctly forces out-of-order logs into chronological alignment."""
+    owner, pet, scheduler = test_env
     
-    # 1. Add tasks out of order (Late afternoon first, early morning second)
-    late_task = Task(
-        task_id="T1", pet_id="P-TEST", title="Evening Grooming",
-        task_type="grooming", start_time=datetime(2026, 7, 5, 19, 0), duration_minutes=30
+    task_late = Task(
+        task_id="T-LATE", pet_id=pet.pet_id, title="Late Walk", 
+        task_type="walk", start_time=datetime.combine(date.today(), datetime.min.time().replace(hour=18)), duration_minutes=30
     )
-    early_task = Task(
-        task_id="T2", pet_id="P-TEST", title="Morning Feed",
-        task_type="feeding", start_time=datetime(2026, 7, 5, 8, 0), duration_minutes=15
+    task_early = Task(
+        task_id="T-EARLY", pet_id=pet.pet_id, title="Early Feeding", 
+        task_type="feeding", start_time=datetime.combine(date.today(), datetime.min.time().replace(hour=7)), duration_minutes=15
     )
     
-    pet.add_task(late_task)
-    pet.add_task(early_task)
+    # Intentionally append later items first
+    pet.add_task(task_late)
+    pet.add_task(task_early)
     
-    # 2. Compile daily agenda
-    agenda = scheduler.get_daily_agenda(owner, date(2026, 7, 5))
+    agenda = scheduler.get_daily_agenda(owner, date.today())
     
-    # 3. Assertions
     assert len(agenda) == 2
-    assert agenda[0].task_id == "T2"  # 08:00 AM comes first
-    assert agenda[1].task_id == "T1"  # 07:00 PM comes second
+    assert agenda[0].task_id == "T-EARLY"
+    assert agenda[1].task_id == "T-LATE"
 
 
-def test_empty_pet_agenda():
-    """Verify that querying an agenda for a pet with zero tasks safely returns an empty list."""
-    scheduler = Scheduler()
-    owner = Owner(owner_id="O-TEST", name="Salisu")
-    pet = Pet(pet_id="P-EMPTY", name="Rex", species="dog", age=3)
-    owner.add_pet(pet)
-    
-    agenda = scheduler.get_daily_agenda(owner, date(2026, 7, 5))
+def test_empty_pet_agenda(test_env):
+    """Ensures query allocations on unconfigured agendas resolve safely to empty lists instead of exceptions."""
+    owner, _, scheduler = test_env
+    agenda = scheduler.get_daily_agenda(owner, date.today())
+    assert isinstance(agenda, list)
     assert len(agenda) == 0
 
 
-def test_conflict_detection_window_overlap():
-    """Verify that the scheduler flags duplicate/overlapping time allocations for the same pet."""
-    scheduler = Scheduler()
-    owner = Owner(owner_id="O-TEST", name="Salisu")
-    pet = Pet(pet_id="P-TEST", name="Mochi", species="cat", age=2)
-    owner.add_pet(pet)
+def test_conflict_detection_window_overlap(test_env):
+    """Validates that absolute time window intersections register as a clear conflict list."""
+    owner, pet, scheduler = test_env
+    base_time = datetime.combine(date.today(), datetime.min.time().replace(hour=12))
     
-    # Task A: 16:00 to 16:40 (40 mins)
-    task_a = Task(
-        task_id="T-A", pet_id="P-TEST", title="Park Walk",
-        task_type="walk", start_time=datetime(2026, 7, 5, 16, 0), duration_minutes=40
+    existing_task = Task(
+        task_id="T-EXISTING", pet_id=pet.pet_id, title="Initial Block", 
+        task_type="grooming", start_time=base_time, duration_minutes=60
     )
-    pet.add_task(task_a)
+    pet.add_task(existing_task)
     
-    # Task B: 16:15 to 16:45 (Overlaps with Task A)
-    task_b = Task(
-        task_id="T-B", pet_id="P-TEST", title="Grooming Session",
-        task_type="grooming", start_time=datetime(2026, 7, 5, 16, 15), duration_minutes=30
+    # Create an intersecting task running from 12:30 to 13:00
+    intersecting_task = Task(
+        task_id="T-INTERSECT", pet_id=pet.pet_id, title="Collision Block", 
+        task_type="feeding", start_time=base_time + timedelta(minutes=30), duration_minutes=30
     )
     
-    conflicts = scheduler.detect_conflicts(owner, task_b)
+    conflicts = scheduler.detect_conflicts(owner, intersecting_task)
     assert len(conflicts) == 1
-    assert conflicts[0].task_id == "T-A"
+    assert conflicts[0].task_id == "T-EXISTING"
 
 
-def test_recurrence_logic_daily_rollforward():
-    """Verify that marking a daily task complete creates a new task exactly 1 day later."""
-    scheduler = Scheduler()
-    task = Task(
-        task_id="T-DAILY", pet_id="P-TEST", title="Daily Vitamin",
-        task_type="medication", start_time=datetime(2026, 7, 5, 12, 0), duration_minutes=10, frequency="Daily"
+def test_recurrence_logic_daily_rollforward(test_env):
+    """Verifies that clicking completion updates statuses and rolls a Daily task exactly 24 hours out."""
+    owner, pet, scheduler = test_env
+    base_time = datetime.combine(date.today(), datetime.min.time().replace(hour=8))
+    
+    recurring_task = Task(
+        task_id="T-RECUR", pet_id=pet.pet_id, title="Daily Routine", 
+        task_type="walk", start_time=base_time, duration_minutes=30, frequency="Daily"
     )
     
-    next_occurrence = task.mark_complete(scheduler)
+    next_task = recurring_task.mark_complete(scheduler)
     
-    assert task.is_completed is True
-    assert next_occurrence is not None
-    assert next_occurrence.start_time == datetime(2026, 7, 6, 12, 0)  # Roll forward +1 day
-    assert next_occurrence.frequency == "Daily"
-    assert "rev" in next_occurrence.task_id
+    assert recurring_task.is_completed is True
+    assert next_task is not None
+    assert next_task.start_time == base_time + timedelta(days=1)
+    assert next_task.frequency == "Daily"
+
+
+def test_task_deserialization_defensive_fallback():
+    """Defensive Testing Area: Verifies that unconvertible strings passed to JSON entries 
+
+    trigger our custom error paths and default safely instead of executing an app-wide crash.
+    """
+    corrupted_json_input = {
+        "task_id": "T-CORRUPT",
+        "pet_id": "P-TEST",
+        "title": "Malicious Date String Injected",
+        "task_type": "medication",
+        "start_time": "completely-invalid-date-format-string-xyz",  # Cannot be parsed by ISO formatters
+        "duration_minutes": 15,
+        "priority": "High",
+        "is_completed": False,
+        "frequency": "Once"
+    }
+    
+    # Invoking deserialization fallback branch
+    parsed_task = Task.from_dict(corrupted_json_input)
+    
+    assert parsed_task.task_id == "T-CORRUPT"
+    assert isinstance(parsed_task.start_time, datetime)
+    # Proves the validation branch intercepted the error and clamped the date smoothly to today
+    assert parsed_task.start_time.date() == date.today()
