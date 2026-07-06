@@ -139,10 +139,22 @@ tests/test_pawpal.py::test_task_deserialization_defensive_fallback PASSED       
 To ensure system reliability beyond volatile application memory bounds, PawPal+ incorporates an automated file-based database lifecycle subsystem:
 
   **Persistence Architecture:** Native serialization matrices are written into `pawpal_system.py` across `to_dict()` and `from_dict()` serialization definitions. This enables precise parsing of nested classes and handling of complex properties like ISO-formatted `datetime` strings.
+
   **Application Lifecycle Flow:** `app.py` acts as a non-blocking gatekeeper. Upon environment boot, the system checks for `data.json`. If found, it automatically restores the complete `Owner` structural ecosystem, full profile matrices, and active schedules. Any subsequent write actions cleanly overwrite the JSON storage file.
+
   **Modified Components:**
     * `pawpal_system.py`: Added explicit encoding, decoding, file loading, and serialization tracking handlers.
     * `app.py`: Integrated file synchronization checks across state instantiation hooks and state update points.
+
+## 🎨 Extended Capability: Professional UI and Output Formatting
+
+To maximize operational scannability for busy pet owners, the system interface incorporates an advanced visual design language:
+
+  **Type-Specific Emojis:** Leverages a local mapping configuration framework to prepend contextual symbols based on the task category block (e.g., `🐕` for walks, `💊` for medications, `🍖` for feedings), improving immediate legibility.
+  
+  **Color-Coded Priority Badges:** Replaces plaintext priority brackets with dynamically generated inline HTML blocks (`span` tags rendered securely with Streamlit's `unsafe_allow_html=True`). High-priority items are wrapped in sharp crimson alerts, normal blocks use an emerald hue, and low-priority items remain a neutral gray.
+  
+  **Structured Administrative Table:** Includes a collapsible technical registry table built utilizing `st.table` components to provide data-integrity inspectors with real-time state array auditing snapshots without cluttering the user interface.
 
 ## Confidence Level
 
