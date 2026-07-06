@@ -96,7 +96,11 @@ Our comprehensive test framework targets the core behavioral rules and edge case
 
 - Empty Agenda Isolation (test_empty_pet_agenda): Checks the system boundary by verifying that querying a new pet profile with zero logged activities safely handles an empty array baseline without crashing.
 
-- Time-Window Overlap Conflict Detection (test_conflict_detection_window_overlap): Tests our mathematical validation formula ($\text{Start}_A < \text{End}_B \text{ and } \text{Start}_B < \text{End}_A$) to ensure it catches overlapping task slots for a pet and flags it for the user.Automated Recurrence Rollforward (test_recurrence_logic_daily_rollforward): Confirms that clicking a Daily task successfully marks it complete and generates a brand-new task instance shifted precisely one day into the future using timedelta.
+- Time-Window Overlap Conflict Detection (test_conflict_detection_window_overlap): Tests our mathematical validation formula ($\text{Start}_A < \text{End}_B \text{ and } \text{Start}_B < \text{End}_A$) to ensure it catches overlapping task slots for a pet and flags it for the user.
+
+- Automated Recurrence Rollforward (test_recurrence_logic_daily_rollforward): Confirms that clicking a Daily task successfully marks it complete and generates a brand-new task instance shifted precisely one day into the future using timedelta.
+
+- Defensive Deserialization Fallback (test_task_deserialization_defensive_fallback): Exercises error branches directly by passing unparseable string parameters into the JSON loading utilities, validating that the system recovers gracefully rather than crashing.
 ```
 
 Sample test output:
@@ -108,14 +112,15 @@ Sample test output:
 platform darwin -- Python 3.14.2, pytest-9.1.1, pluggy-1.6.0 -- /Users/salisuibrahim/dev/machine-learning/CodePath/ai110-module2show-pawpal-starter/.venv/bin/python3
 cachedir: .pytest_cache
 rootdir: /Users/salisuibrahim/dev/machine-learning/CodePath/ai110-module2show-pawpal-starter
-collected 4 items                                                                     
+collected 5 items                                                                     
 
-tests/test_pawpal.py::test_chronological_task_sorting PASSED                    [ 25%]
-tests/test_pawpal.py::test_empty_pet_agenda PASSED                              [ 50%]
-tests/test_pawpal.py::test_conflict_detection_window_overlap PASSED             [ 75%]
-tests/test_pawpal.py::test_recurrence_logic_daily_rollforward PASSED            [100%]
+tests/test_pawpal.py::test_chronological_task_sorting PASSED                    [ 20%]
+tests/test_pawpal.py::test_empty_pet_agenda PASSED                              [ 40%]
+tests/test_pawpal.py::test_conflict_detection_window_overlap PASSED             [ 60%]
+tests/test_pawpal.py::test_recurrence_logic_daily_rollforward PASSED            [ 80%]
+tests/test_pawpal.py::test_task_deserialization_defensive_fallback PASSED       [100%]
 
-================================== 4 passed in 0.01s ==================================
+================================== 5 passed in 0.01s ==================================
 ```
 
 ## 📐 Smarter Scheduling
